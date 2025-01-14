@@ -12,7 +12,9 @@
 ///     @Entry var state: String = "Some string for global use."
 /// }
 /// ```
-/// 
+///
+/// - Parameter evaluation: The type of value you want the default property to be. Default: `.constant`
+///
 @attached(accessor)
 @attached(peer, names: prefixed(__GlobalKey_))
-public macro GlobalValue() = #externalMacro(module: "GlobalMacroMacros", type: "GlobalValueMacro")
+public macro GlobalValue(propertyType: PropertyType = .constant) = #externalMacro(module: "GlobalMacroMacros", type: "GlobalValueMacro")

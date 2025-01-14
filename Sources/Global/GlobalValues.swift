@@ -6,12 +6,13 @@ import Foundation
 /// like values to your application. Use the `Global` property wrapper and specify
 /// the value's key path. Ensure your value conforms to `GlobalKey`.
 public final class GlobalValues: @unchecked Sendable {
-    nonisolated(unsafe) static var shared: GlobalValues = .init()
+    nonisolated(unsafe)
+    static var shared: GlobalValues = .init()
     
     fileprivate var lock: pthread_rwlock_t
     fileprivate var storage: [ObjectIdentifier: Any]
     
-    private init() {
+    fileprivate init() {
         storage = [:]
         lock = pthread_rwlock_t()
         pthread_rwlock_init(&lock, nil)
@@ -49,5 +50,11 @@ extension GlobalValues: CustomDebugStringConvertible {
         defer { pthread_rwlock_unlock(&lock) }
         storage.removeAll()
     }
+    
+    static func setSharedStorage(_ storage: GlobalValues) {
+        shared = storage
+    }
+    
+    static func testStorage() -> GlobalValues { .init() }
 }
 #endif

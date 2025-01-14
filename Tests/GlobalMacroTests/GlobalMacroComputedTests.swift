@@ -8,19 +8,25 @@ import XCTest
 
 #if canImport(GlobalMacroMacros)
 import GlobalMacroMacros
-
-let testMacros: [String: Macro.Type] = [
-    "GlobalValue": GlobalValueMacro.self,
-]
 #endif
 
-final class GlobalMacroTests: XCTestCase {
+final class GlobalMacroComputedTests: XCTestCase {
+    let testMacros: [String: Macro.Type] = {
+        #if canImport(GlobalMacroMacros)
+        [
+            "GlobalValue": GlobalValueMacro.self,
+        ]
+        #else
+        []
+        #endif
+    }()
+    
     func testMacroWithValue() throws {
         #if canImport(GlobalMacroMacros)
         assertMacroExpansion(
             """
             extension GlobalValues {
-                @GlobalValue var state: GlobalState = .whoKnows
+                @GlobalValue(propertyType: .computed) var state: GlobalState = .whoKnows
             }
             """,
             expandedSource: """
@@ -54,7 +60,7 @@ final class GlobalMacroTests: XCTestCase {
         assertMacroExpansion(
             """
             extension GlobalValues {
-                @GlobalValue var state: GlobalState? = nil
+                @GlobalValue(propertyType: .computed) var state: GlobalState? = nil
             }
             """,
             expandedSource: """
@@ -88,7 +94,7 @@ final class GlobalMacroTests: XCTestCase {
         assertMacroExpansion(
             """
             extension GlobalValues {
-                @GlobalValue var state: GlobalState?
+                @GlobalValue(propertyType: .computed) var state: GlobalState?
             }
             """,
             expandedSource: """
@@ -122,7 +128,7 @@ final class GlobalMacroTests: XCTestCase {
         assertMacroExpansion(
             """
             extension GlobalValues {
-                @GlobalValue var state: GlobalState? = .whoKnows
+                @GlobalValue(propertyType: .computed) var state: GlobalState? = .whoKnows
             }
             """,
             expandedSource: """

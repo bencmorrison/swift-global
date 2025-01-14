@@ -6,22 +6,72 @@ import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
 public struct GlobalValueMacro {
-    fileprivate static let macroName: String = "@GlobalValue"
-    fileprivate static let globalValuesName: String = "GlobalValues"
-    fileprivate static let prefix: String = "__GlobalKey_"
+    @usableFromInline static let macroName: String = "@GlobalValue"
+    @usableFromInline static let globalValuesName: String = "GlobalValues"
+    @usableFromInline static let prefix: String = "__GlobalKey_"
+    @usableFromInline static let propertyTypeArgumentName: String = "propertyType"
+    @usableFromInline static let propertyTypeNameComputed: String = "computed"
+    @usableFromInline static let propertyTypeNameConstant: String = "constant"
     
-    fileprivate static func ensureGlobalValuesProtocol(in context: some MacroExpansionContext) -> Error? {
+    @inlinable
+    static func variableDeclaration(in declaration: some DeclSyntaxProtocol) throws -> VariableDeclSyntax {
+        guard let variableDecl = declaration.as(VariableDeclSyntax.self) else {
+            throw GlobalValueMacroError.requiresVariableDeclaration
+        }
+        return variableDecl
+    }
+    
+    @inlinable
+    static func identifier(from variableDecl: VariableDeclSyntax) throws -> TokenSyntax {
+        guard let identifier = variableDecl.bindings.first?.pattern.as(IdentifierPatternSyntax.self)?.identifier else {
+            throw GlobalValueMacroError.invalidVariableDeclaration
+        }
+        return identifier
+    }
+    
+    @inlinable
+    static func typeAnnotation(from variableDecl: VariableDeclSyntax) throws -> TypeSyntax {
+        guard let typeAnnotation = variableDecl.bindings.first?.typeAnnotation?.type else {
+            throw GlobalValueMacroError.requiresTypeAnnotation
+        }
+        return typeAnnotation
+    }
+    
+    @inlinable
+    static func ensureGlobalValuesProtocol(in context: some MacroExpansionContext) throws {
         guard let extensionDecl = context.lexicalContext.compactMap({ $0.as(ExtensionDeclSyntax.self) }).first else {
-            return MacroExpansionErrorMessage("There was an issue attempting to get the name of type the macro is being used in.")
+            throw GlobalValueMacroError.requiresUseInGlobalValuesExtension
         }
         guard let identifierSyntax = extensionDecl.extendedType.as(IdentifierTypeSyntax.self) else {
-            return MacroExpansionErrorMessage("Unable to get the Identifier from the extension the macro is being used in.")
+            throw MacroExpansionErrorMessage("Unable to get the Identifier from the extension the macro is being used in.")
         }
         guard identifierSyntax.name.text == globalValuesName else {
-            return MacroExpansionErrorMessage("\(macroName) must be used in an extension of \(globalValuesName)")
+            throw GlobalValueMacroError.requiresUseInGlobalValuesExtension
         }
         
+        return
+    }
+    
+    @inlinable
+    static func argumentNamed<T>(_ argumentName: String, from node: AttributeSyntax, parseFrom parse: (LabeledExprListSyntax.Element) -> T?) -> T? {
+        guard let argumentList = node.arguments?.as(LabeledExprListSyntax.self) else { return nil }
+        for argument in argumentList {
+            if argument.label?.text == argumentName {
+                return parse(argument)
+            }
+        }
         return nil
+    }
+    
+    @inlinable
+    static func defaultValue(from variableDecl: VariableDeclSyntax, andTypeAnnotation typeAnnotation: TypeSyntax) throws -> ExprSyntax {
+        if typeAnnotation.as(OptionalTypeSyntax.self) != nil {
+            return variableDecl.bindings.first?.initializer?.value ?? "nil"
+        } else if let value = variableDecl.bindings.first?.initializer?.value {
+            return value
+        } else {
+            throw GlobalValueMacroError.requiresVariableInitalization
+        }
     }
 }
 
@@ -31,17 +81,9 @@ extension GlobalValueMacro: AccessorMacro {
         providingAccessorsOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [SwiftSyntax.AccessorDeclSyntax] {
-        guard let variableDecl = declaration.as(VariableDeclSyntax.self) else {
-            throw MacroExpansionErrorMessage("\(macroName) can only be used with a variable declaration.")
-        }
-        
-        guard let identifier = variableDecl.bindings.first?.pattern.as(IdentifierPatternSyntax.self)?.identifier else {
-            throw MacroExpansionErrorMessage("Invalid variable declaration.")
-        }
-        
-        if let error = ensureGlobalValuesProtocol(in: context) {
-            throw error
-        }
+        let variableDecl = try variableDeclaration(in: declaration)
+        let identifier = try identifier(from: variableDecl)
+        try ensureGlobalValuesProtocol(in: context)
 
         let keyName = "\(prefix)\(identifier.text)"
 
@@ -58,43 +100,46 @@ extension GlobalValueMacro: PeerMacro {
         providingPeersOf declaration: some DeclSyntaxProtocol,
         in context: some MacroExpansionContext
     ) throws -> [SwiftSyntax.DeclSyntax] {
+        let variableDecl = try variableDeclaration(in: declaration)
+        let identifier = try identifier(from: variableDecl)
         
-        guard let variableDecl = declaration.as(VariableDeclSyntax.self) else {
-            throw MacroExpansionErrorMessage("\(macroName) can only be used with a variable declaration.")
-        }
+        try ensureGlobalValuesProtocol(in: context)
         
-        guard let identifier = variableDecl.bindings.first?.pattern.as(IdentifierPatternSyntax.self)?.identifier else {
-            throw MacroExpansionErrorMessage("Invalid variable declaration.")
-        }
-        
-        guard let typeAnnotation = variableDecl.bindings.first?.typeAnnotation?.type else {
-            throw MacroExpansionErrorMessage("Invalid variable type declaration.")
-        }
-
-        if let error = ensureGlobalValuesProtocol(in: context) {
-            throw error
-        }
-        
+        let typeAnnotation = try typeAnnotation(from: variableDecl)
         let keyName = "\(prefix)\(identifier.text)"
+        let defaultValue = try defaultValue(from: variableDecl, andTypeAnnotation: typeAnnotation)
+                
+        let evaluationType = argumentNamed(propertyTypeArgumentName, from: node, parseFrom: { argument in
+            if let memberAccess = argument.expression.as(MemberAccessExprSyntax.self) {
+                return memberAccess.declName.baseName.text
+            }
+            return nil
+        }) ?? propertyTypeNameConstant
         
-        let defaultValue = if typeAnnotation.as(OptionalTypeSyntax.self) != nil {
-            variableDecl.bindings.first?.initializer?.value ?? "nil"
-        } else if let value = variableDecl.bindings.first?.initializer?.value {
-            value
-        } else {
-            throw MacroExpansionErrorMessage("Variable initialization required, or must be marked as optional.")
+        var source: String = """
+        private struct \(keyName): GlobalKey {
+            typealias Value = \(typeAnnotation)
+        """
+        
+        switch evaluationType {
+        case propertyTypeNameConstant:
+            source += """
+                static let defaultValue: Value = \(defaultValue)
+            """
+        case propertyTypeNameComputed:
+            source += """
+                static var defaultValue: Value { \(defaultValue) }
+            """
+        default:
+            throw GlobalValueMacroError.unknownPropertyType(evaluationType)
         }
+        
+        source += "}"
         
         return [
-            DeclSyntax(
-            """
-            private struct \(raw: keyName): GlobalKey {
-                typealias Value = \(typeAnnotation)
-                static var defaultValue: Value { \(defaultValue) }
-            }
-            """
-            )
+            DeclSyntax(stringLiteral: source)
         ]
+        
     }
 }
 
@@ -104,3 +149,4 @@ struct GlobalMacroPlugin: CompilerPlugin {
         GlobalValueMacro.self,
     ]
 }
+

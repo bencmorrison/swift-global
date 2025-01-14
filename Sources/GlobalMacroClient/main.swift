@@ -8,6 +8,10 @@ enum GlobalState: String {
     case happy, sad, whoKnows
 }
 
+struct Thing {
+    let name: String
+}
+
 extension GlobalValues {
     @GlobalValue var state: GlobalState = .whoKnows
 }

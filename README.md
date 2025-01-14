@@ -55,6 +55,14 @@ final class SomeRandomClass {
 
 The macro way is pretty simple, and easy. We will use the type above to show this example as well. It too takes the same idea as the `@Enviornment` maco, and also takes on `@Entry` macro as well. To prevent any sort of headaches I decided to not name my macro `@Entry` as well. Instead we will use `GlobalValue`.
 
+Bu default the macro will create all defaultValues as a stored constant property (`let v: Int = 0`). If you would like to change this to a computed variable add the argument `propertyType` to your macro. Example: `@GlobalValue(propertyType: .computed) var v: Int = 0` which will result in `var v: Int { 0 }`
+
+**Requirments** to keep in mind:
+
+- You must use the macro in an extension of `GlobalValues`
+- At this type your variables are required to have type annotation.
+- The variable must be initalized _unless_ it is optional.
+
 #### SomeGlobalState.swift
 
 ```swift
@@ -112,4 +120,4 @@ Finally, add `import Global` and `import GlobalMacro` to your source code as nee
 
 ## Notes
 
-- I will add testing... at some point.
+- There is some testing around the macro and global in general. I hope to more in the future.
