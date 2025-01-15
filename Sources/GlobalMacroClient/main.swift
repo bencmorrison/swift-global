@@ -2,7 +2,7 @@
 
 import Foundation
 import Global
-import GlobalMacro
+import GlobalMacros
 
 enum GlobalState: String {
     case happy, sad, whoKnows
@@ -14,6 +14,7 @@ struct Thing {
 
 extension GlobalValues {
     @GlobalValue var state: GlobalState = .whoKnows
+    @GlobalValue var defaultInteger: Int = .min
 }
 
 final class Client: CustomStringConvertible {
@@ -36,6 +37,10 @@ struct ClientViewer: CustomStringConvertible {
     var description: String { "ClientViewer State: \(globalState)" }
 }
 
+extension Int {
+    @GlobalAccessor(\.defaultInteger, type: .getter) var `default`: Int
+}
+
 let client = Client()
 let viewer = ClientViewer()
 
@@ -47,4 +52,5 @@ print(viewer)
 client.changeState(to: .sad)
 print(client)
 print(viewer)
+print(Int.max.default)
 

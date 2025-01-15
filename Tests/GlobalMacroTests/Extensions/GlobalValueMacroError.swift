@@ -5,7 +5,7 @@ import GlobalMacroMacros
 import SwiftSyntaxMacrosTestSupport
 
 extension DiagnosticSpec {
-    init(from error: GlobalValueMacroError, line: Int, column: Int) {
+    init(from error: GlobalMacroError, line: Int, column: Int) {
         self.init(message: error.message, line: line, column: column)
     }
 }

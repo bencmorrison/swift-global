@@ -7,7 +7,7 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
 
-import GlobalMacro
+import GlobalMacros
 
 #if canImport(GlobalMacroMacros)
 @testable import GlobalMacroMacros
@@ -43,7 +43,10 @@ final class GlobalMacroFailureTests: XCTestCase {
             invalidInput,
             expandedSource: expectedOutput,
             diagnostics: [
-                DiagnosticSpec(from: .requiresVariableDeclaration, line: 2, column: 5)
+                DiagnosticSpec(
+                    from: .requiresVariableDeclaration(macro: GlobalValueMacro.self),
+                    line: 2, column: 5
+                )
             ],
             macros: testMacros
         )
@@ -52,7 +55,7 @@ final class GlobalMacroFailureTests: XCTestCase {
         #endif
     }
     
-    func testMacroThrowsWhenOutsideGlobalValues() throws {
+    func testMacroThrowsWhenOutsideGlobalValuesInNotExtension() throws {
         #if canImport(GlobalMacroMacros)
         let invalidInput = """
         struct OtherType {
@@ -70,8 +73,48 @@ final class GlobalMacroFailureTests: XCTestCase {
             invalidInput,
             expandedSource: expectedOutput,
             diagnostics: [
-                DiagnosticSpec(from: .requiresUseInGlobalValuesExtension, line: 2, column: 5),
-                DiagnosticSpec(from: .requiresUseInGlobalValuesExtension, line: 2, column: 5)
+                DiagnosticSpec(
+                    from: .requiresUseInExtension(forMacro: GlobalValueMacro.self),
+                    line: 2, column: 5
+                ),
+                DiagnosticSpec(
+                    from: .requiresUseInExtension(forMacro: GlobalValueMacro.self),
+                    line: 2, column: 5
+                )
+            ],
+            macros: testMacros
+        )
+        #else
+        throw XCTSkip("macros are only supported when running tests for the host platform")
+        #endif
+    }
+    
+    func testMacroThrowsWhenOutsideGlobalValuesInOtherExtension() throws {
+        #if canImport(GlobalMacroMacros)
+        let invalidInput = """
+        extension Thing {
+            @GlobalValue var state: String = "Some value"
+        }
+        """
+        
+        let expectedOutput = """
+        extension Thing {
+            var state: String = "Some value"
+        }
+        """
+        
+        assertMacroExpansion(
+            invalidInput,
+            expandedSource: expectedOutput,
+            diagnostics: [
+                DiagnosticSpec(
+                    from: .requiresUseInExtension(GlobalValueMacro.extensionName, forMacro: GlobalValueMacro.self),
+                    line: 2, column: 5
+                ),
+                DiagnosticSpec(
+                    from: .requiresUseInExtension(GlobalValueMacro.extensionName, forMacro: GlobalValueMacro.self),
+                    line: 2, column: 5
+                )
             ],
             macros: testMacros
         )
@@ -105,7 +148,10 @@ final class GlobalMacroFailureTests: XCTestCase {
             invalidInput,
             expandedSource: expectedOutput,
             diagnostics: [
-                DiagnosticSpec(from: .requiresTypeAnnotation, line: 2, column: 5)
+                DiagnosticSpec(
+                    from: .requiresTypeAnnotation(macro: GlobalValueMacro.self),
+                    line: 2, column: 5
+                )
             ],
             macros: testMacros
         )
@@ -139,7 +185,10 @@ final class GlobalMacroFailureTests: XCTestCase {
             invalidInput,
             expandedSource: expectedOutput,
             diagnostics: [
-                DiagnosticSpec(from: .requiresVariableInitalization, line: 2, column: 5)
+                DiagnosticSpec(
+                    from: .requiresVariableInitalization(macro: GlobalValueMacro.self),
+                    line: 2, column: 5
+                )
             ],
             macros: testMacros
         )
@@ -174,7 +223,10 @@ final class GlobalMacroFailureTests: XCTestCase {
             invalidInput,
             expandedSource: expectedOutput,
             diagnostics: [
-                DiagnosticSpec(from: .unknownPropertyType(propertyType), line: 2, column: 5)
+                DiagnosticSpec(
+                    from: .unknownType(propertyType, forMacro: GlobalValueMacro.self),
+                    line: 2, column: 5
+                )
             ],
             macros: testMacros
         )

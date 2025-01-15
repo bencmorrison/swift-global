@@ -75,7 +75,7 @@ enum SomeGlobalState {
 #### GlobalValues.swift
 ```swift
 import Global
-import GlobalMacro
+import GlobalMacros
 
 extension GlobalValues {
     // The macro will automatically create all needed code to allow you to use the
@@ -99,24 +99,71 @@ final class SomeRandomClass {
 }
 ```
 
+## Global Values and Extensions
+
+There may be a time where you can't add the property wrapper directly to an extension for various reasons.
+There are two ways you can do this, manually, or via a helper macro.
+
+### Manually
+
+To manually allow your extension to access your global value or set your global value you will need to do the following in your extension.
+
+```swift
+extension UIView {
+    // This code expects `SomeGlobalState` to already have been added to `GlobalValues`
+    var state: SomeGlobalState {
+        get {
+            GlobalValues.get(\.state)
+        }
+        set {
+            GlobalValues.set(\.state, to: newValue)
+        }
+    }
+}
+```
+
+### Helper Macro
+
+To help automate this a bit, you can use the helper macro `@GlobalAccessor`.
+It should be noted that this cannot check if this global has already been added to the type via an extension elsewhere.
+
+```swift
+extension UIView {
+    // This code assumes `SomeGlobalState` to already have been added to `GlobalValues`
+    // The type is required here!
+    @GlobalAccessor(\.state) var state: SomeGlobalState
+}
+```
+
+By _default_ only the getter is synthesized. If you would like to also get the setter created you can set the
+`type` arguent on the macro to `.getterAndSetter` EX: `@GlobalAccessor(\.state, type: .getterAndSetter) var state: SomeGlobalState`
+which will synthesize both the getter and setter for the `Global`.
+
+
 ## Adding `Global` as a depenancy
 
 To use the `Global` library in a SwiftPM project, add the following line to the dependencies in your Package.swift file:
 
 ```swift
-.package(url: "https://github.com/bencmorrison/swift-global.git", from: "0.2.0"),
+.package(url: "https://github.com/bencmorrison/swift-global.git", from: "0.4.0"),
 ```
 
-include `Global` and `GlobalMacro` (only if you plan to use the macro way) as dependancies for your executable targets
+include `Global` and `GlobalMacros` (only if you plan to use the macro way) as dependancies for your executable targets
 
 ```swift
 .target(name: "<target>", dependencies: [
     .product(name: "Global", package: "swift-global"),
-    .product(name: "GlobalMacro", package: "swift-global"),
+    .product(name: "GlobalMacros", package: "swift-global"),
 ]),
 ```
 
-Finally, add `import Global` and `import GlobalMacro` to your source code as needed.
+Finally, add `import Global` and `import GlobalMacros` to your source code as needed.
+
+## Contributing
+
+If you would like to contribute to this at all that is awesome. Though I do reserve the right to say no to changes.
+
+Please feel free to file issues as well.
 
 ## Notes
 

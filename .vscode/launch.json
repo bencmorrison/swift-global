@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Global_Protocol}",
+            "name": "Debug GlobalMacroClient",
+            "program": "${workspaceFolder:Global_Protocol}/.build/debug/GlobalMacroClient",
+            "preLaunchTask": "swift: Build Debug GlobalMacroClient"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Global_Protocol}",
+            "name": "Release GlobalMacroClient",
+            "program": "${workspaceFolder:Global_Protocol}/.build/release/GlobalMacroClient",
+            "preLaunchTask": "swift: Build Release GlobalMacroClient"
+        }
+    ]
+}

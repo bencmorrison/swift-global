@@ -11,8 +11,8 @@ let package = Package(
             name: "Global",
             targets: ["Global"]),
         .library(
-            name: "GlobalMacro",
-            targets: ["GlobalMacro"]
+            name: "GlobalMacros",
+            targets: ["GlobalMacros"]
         ),
         .executable(
             name: "GlobalMacroClient",
@@ -34,18 +34,18 @@ let package = Package(
             ]
         ),
         .target(
-            name: "GlobalMacro",
-            dependencies: ["GlobalMacroMacros"]
+            name: "GlobalMacros",
+            dependencies: ["GlobalMacroMacros", "Global"]
         ),
         .executableTarget(
             name: "GlobalMacroClient",
-            dependencies: ["GlobalMacro", "Global"]
+            dependencies: ["GlobalMacros", "Global"]
         ),
         .testTarget(
             name: "GlobalMacroTests",
             dependencies: [
                 "GlobalMacroMacros",
-                "GlobalMacro",
+                "GlobalMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ]
         ),

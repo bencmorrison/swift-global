@@ -17,4 +17,6 @@
 ///
 @attached(accessor)
 @attached(peer, names: prefixed(__GlobalKey_))
-public macro GlobalValue(propertyType: PropertyType = .constant) = #externalMacro(module: "GlobalMacroMacros", type: "GlobalValueMacro")
+public macro GlobalValue(propertyType: PropertyType = .constant) = #externalMacro(
+    module: "GlobalMacroMacros", type: "GlobalValueMacro"
+)
